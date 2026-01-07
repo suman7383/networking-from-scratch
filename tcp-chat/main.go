@@ -91,14 +91,12 @@ func (c *ChatServer) broadcastExceptSelf(conn net.Conn, msg []byte) {
 	}
 }
 
-func main() {
-	if len(os.Args) < 2 {
-		fmt.Printf("Expected 2 arguments got %d\n", len(os.Args))
-		os.Exit(1)
+func run(args []string) error {
+	if len(args) < 2 {
+		return fmt.Errorf("Expected 2 arguments got %d\n", len(args))
 	}
-
 	// Format the port properly(:8080)
-	port := fmt.Sprintf(":%s", os.Args[1])
+	port := fmt.Sprintf(":%s", args[1])
 
 	server, err := NewChatServer(port)
 
@@ -107,5 +105,14 @@ func main() {
 	}
 
 	// Start accepting connections
-	server.Start()
+	return server.Start()
+}
+
+func main() {
+	if err := run(os.Args); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	run(os.Args)
 }
