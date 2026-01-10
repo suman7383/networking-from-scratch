@@ -40,7 +40,11 @@ func (h *HttpServer) Start() error {
 func (h *HttpServer) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	// TODO
+	// TODO Parse the incoming request
+
+	// request-line   = method SP request-target SP HTTP-version CRLF
+
+	// header-field   = field-name ":" OWS field-value OWS  (Where OWS = Optional White Space)
 }
 
 // TODO
