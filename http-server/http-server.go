@@ -23,6 +23,26 @@ func NewHttpServer(port string) (*HttpServer, error) {
 	}, nil
 }
 
+func (h *HttpServer) Start() error {
+	// Accept active connections
+	for {
+		conn, err := h.ln.Accept()
+
+		if err != nil {
+			fmt.Println("error accepting client connection, err", err)
+			continue
+		}
+
+		go h.handleConnection(conn)
+	}
+}
+
+func (h *HttpServer) handleConnection(conn net.Conn) {
+	defer conn.Close()
+
+	// TODO
+}
+
 // TODO
 func main() {
 
