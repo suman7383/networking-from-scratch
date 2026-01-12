@@ -50,6 +50,7 @@ type Request struct {
 	// Path specifies the URI path for the request("/", "/health" )
 	//
 	// TODO: Move this to url package
+	Path string
 
 	// ctx is the server context.
 	ctx context.Context
