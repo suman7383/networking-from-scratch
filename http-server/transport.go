@@ -6,11 +6,11 @@ import (
 )
 
 // TODO
-type HttpServer struct {
+type Tcp struct {
 	ln net.Listener
 }
 
-func NewHttpServer(port string) (*HttpServer, error) {
+func NewHttpServer(port string) (*Tcp, error) {
 	ln, err := net.Listen("tcp", port)
 
 	if err != nil {
@@ -18,12 +18,12 @@ func NewHttpServer(port string) (*HttpServer, error) {
 		return nil, err
 	}
 
-	return &HttpServer{
+	return &Tcp{
 		ln: ln,
 	}, nil
 }
 
-func (h *HttpServer) Start() error {
+func (h *Tcp) Start() error {
 	// Accept active connections
 	for {
 		conn, err := h.ln.Accept()
@@ -37,7 +37,7 @@ func (h *HttpServer) Start() error {
 	}
 }
 
-func (h *HttpServer) handleConnection(conn net.Conn) {
+func (h *Tcp) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
 	// TODO Parse the incoming request
