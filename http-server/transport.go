@@ -10,7 +10,7 @@ type Tcp struct {
 	ln net.Listener
 }
 
-func NewHttpServer(port string) (*Tcp, error) {
+func NewTcpServer(port string) (*Tcp, error) {
 	ln, err := net.Listen("tcp", port)
 
 	if err != nil {
@@ -23,7 +23,7 @@ func NewHttpServer(port string) (*Tcp, error) {
 	}, nil
 }
 
-func (h *Tcp) Start() error {
+func (h *Tcp) ListenAndServe() error {
 	// Accept active connections
 	for {
 		conn, err := h.ln.Accept()
