@@ -21,6 +21,8 @@ func (s *Server) ListenAndServe() error {
 	if err != nil {
 		return err
 	}
+
+	fmt.Println("[SERVER] started listening")
 	return s.Serve(ln)
 }
 
@@ -35,6 +37,8 @@ func (s *Server) Serve(ln net.Listener) error {
 			continue
 		}
 
+		slog.Info(fmt.Sprintf("client connected: %s\n", conn.RemoteAddr()))
+
 		go s.serve(conn)
 	}
 }
@@ -46,29 +50,41 @@ func (s *Server) serve(conn net.Conn) {
 	reader := NewReader(conn)
 
 	// Parse the HTTP request line
-	_, err := readRequest(reader)
-	switch {
-	case errors.Is(err, ErrMalformedRequestLine) || errors.Is(err, ErrInvalidRequestMethod):
-		// TODO
-		// Send 400 Error response
-		slog.Error(err.Error())
-		_, errW := io.WriteString(conn, fmt.Sprintf("HTTP/1.1 400 Bad Request\r\n\r\n%s\n", err.Error()))
-		if errW != nil {
-			slog.Error(err.Error())
-			return
-		}
+	req, err := readRequest(reader)
 
-	default:
-		// TODO
-		// Send 500 Error response
-		slog.Error(err.Error())
-		_, errW := io.WriteString(conn, fmt.Sprintf("HTTP/1.1 500 Internal Server Error\r\n\r\n%s\n", err.Error()))
-		if errW != nil {
+	if err != nil {
+		switch {
+		case errors.Is(err, ErrMalformedRequestLine) || errors.Is(err, ErrInvalidRequestMethod):
+			// TODO
+			// Send 400 Error response
 			slog.Error(err.Error())
-			return
+			_, errW := io.WriteString(conn, fmt.Sprintf("HTTP/1.1 400 Bad Request\r\n\r\n%s\n", err.Error()))
+			if errW != nil {
+				slog.Error(err.Error())
+				return
+			}
+
+		default:
+			// TODO
+			// Send 500 Error response
+			slog.Error(err.Error())
+			_, errW := io.WriteString(conn, fmt.Sprintf("HTTP/1.1 500 Internal Server Error\r\n\r\n%s\n", err.Error()))
+			if errW != nil {
+				slog.Error(err.Error())
+				return
+			}
 		}
+		return
 	}
 
+	// Testing (Remove this later)
+	fmt.Printf("%v", req)
+	_, err = io.WriteString(conn, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nOK")
+
+	if err != nil {
+		slog.Error(err.Error())
+		return
+	}
 	// header-field   = field-name ":" OWS field-value OWS  (Where OWS = Optional White Space)
 }
 
