@@ -95,11 +95,39 @@ func readRequest(r *Reader) (req *Request, err error) {
 
 	// TODO
 	// parse url from req.RequestURI
+	fmt.Printf("RequestURI is %s", req.RequestURI)
+
+	// parse http version
+	if req.ProtocolMajor, req.ProtocolMinor, ok = parseHttpVersion(req.Protocol); !ok {
+		return nil, badStringError("malformed HTTP version", req.Protocol)
+	}
 
 	// TODO
-	// parse http version
+	// Parse headers
 
 	return req, nil
+}
+
+func parseHttpVersion(protocol string) (majorProto, minorProto int, ok bool) {
+	// HTTP/1.1
+	switch protocol {
+	case "HTTP/1.1":
+		return 1, 1, true
+	case "HTTP/1.0":
+		return 1, 0, true
+	default:
+		return 0, 0, false
+	}
+
+	// if !strings.HasPrefix(protocol, "HTTP/"){
+	// 	return 0, 0, false
+	// }
+	// if len(protocol) != len("HTTP/X.Y"){
+	// 	return 0, 0, false
+	// }
+	// if protocol[6] != '.'{
+	// 	return 0, 0, false
+	// }
 }
 
 // NewRequest forms and returns *Request using the requst line
