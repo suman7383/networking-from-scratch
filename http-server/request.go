@@ -1,6 +1,12 @@
 package main
 
-import "context"
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"strings"
+)
 
 // Represents a HTTP request received by the server.
 type Request struct {
@@ -54,4 +60,65 @@ type Request struct {
 
 	// ctx is the server context.
 	ctx context.Context
+}
+
+var ErrMalformedRequestLine = errors.New("malformed request line: missing CRLF")
+var ErrInvalidRequestMethod = errors.New("method invalid or not supported. Only send GET request")
+
+func badStringError(err, val string) error { return fmt.Errorf("%s %q", err, val) }
+
+func readRequest(r *Reader) (req *Request, err error) {
+	req = new(Request)
+
+	// HTTP request-line = method SP request-target SP HTTP-version CRLF
+	// Where SP = Single Space
+	var reqLine string
+	reqLine, err = r.ReadLine()
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+	}()
+
+	var ok bool
+	req.Method, req.RequestURI, req.Protocol, ok = parseRequestLine(reqLine)
+	if !ok {
+		return nil, badStringError("malformed HTTP request", reqLine)
+	}
+	if !validMethod(req.Method) {
+		return nil, ErrInvalidRequestMethod
+	}
+
+	// TODO
+	// parse url from req.RequestURI
+
+	// TODO
+	// parse http version
+
+	return req, nil
+}
+
+// NewRequest forms and returns *Request using the requst line
+func parseRequestLine(requestLine string) (method, requestUri, proto string, ok bool) {
+	// requestLine = method SP request-target SP HTTP-version
+	// We cut on SP(Single Space)
+	method, rest, ok1 := strings.Cut(requestLine, " ")
+	requestURI, proto, ok2 := strings.Cut(rest, " ")
+	if !ok1 || !ok2 {
+		return "", "", "", false
+	}
+
+	return method, requestURI, proto, true
+}
+
+func validMethod(m string) bool {
+	// For now we only check for GET request
+	if m != MethodGet {
+		return false
+	}
+	return true
 }
