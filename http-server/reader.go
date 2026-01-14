@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"net"
 	"strings"
 )
@@ -18,8 +17,6 @@ func NewReader(conn net.Conn) *Reader {
 		reader: bufio.NewReader(conn),
 	}
 }
-
-var ErrMalformedRequestLine = errors.New("malformed request line: missing CRLF")
 
 // ReadLine reads until delimiter '\n' from the reader and
 // checks for valid CRLF('\r\n').
