@@ -1,7 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
+	"log/slog"
 	"net"
 )
 
@@ -39,9 +42,32 @@ func (s *Server) Serve(ln net.Listener) error {
 func (s *Server) serve(conn net.Conn) {
 	defer conn.Close()
 
-	// TODO Parse the incoming request
+	// Wrap the conn with Reader
+	reader := NewReader(conn)
 
-	// request-line   = method SP request-target SP HTTP-version CRLF
+	// Parse the HTTP request line
+	_, err := readRequest(reader)
+	switch {
+	case errors.Is(err, ErrMalformedRequestLine) || errors.Is(err, ErrInvalidRequestMethod):
+		// TODO
+		// Send 400 Error response
+		slog.Error(err.Error())
+		_, errW := io.WriteString(conn, fmt.Sprintf("HTTP/1.1 400 Bad Request\r\n\r\n%s\n", err.Error()))
+		if errW != nil {
+			slog.Error(err.Error())
+			return
+		}
+
+	default:
+		// TODO
+		// Send 500 Error response
+		slog.Error(err.Error())
+		_, errW := io.WriteString(conn, fmt.Sprintf("HTTP/1.1 500 Internal Server Error\r\n\r\n%s\n", err.Error()))
+		if errW != nil {
+			slog.Error(err.Error())
+			return
+		}
+	}
 
 	// header-field   = field-name ":" OWS field-value OWS  (Where OWS = Optional White Space)
 }
