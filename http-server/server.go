@@ -85,7 +85,7 @@ func (s *Server) serve(conn net.Conn) {
 		slog.Error(err.Error())
 		return
 	}
-	// header-field   = field-name ":" OWS field-value OWS  (Where OWS = Optional White Space)
+
 }
 
 func ListenAndServe(addr string) error {

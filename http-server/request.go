@@ -104,8 +104,39 @@ func readRequest(r *Reader) (req *Request, err error) {
 
 	// TODO
 	// Parse headers
+	// header-field   = field-name ":" OWS field-value OWS  (Where OWS = Optional White Space)
 
 	return req, nil
+}
+
+var ErrInvalidHeaderField = errors.New("invalid header field")
+
+func parseHeaders(r *Reader) (Header, error) {
+	var h Header
+
+	// Sample request(after request line)
+	// Host: localhost:8080\r\nUser-Agent: curl/8.0.0\r\nAccept: */*\r\nConnection: close\r\n\r\n
+	for {
+		line, err := r.ReadLine()
+		if err != nil {
+			return nil, err
+		}
+
+		// Reached end of headers
+		if len(line) == 0 {
+			return h, nil
+		}
+
+		// Check for leading space
+		if line[0] == ' ' {
+			return nil, ErrInvalidHeaderField
+		}
+
+		// line contains FieldName: Value
+		// Check for colon and a OWS before value
+		// TODO
+
+	}
 }
 
 func parseHttpVersion(protocol string) (majorProto, minorProto int, ok bool) {
