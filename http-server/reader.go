@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"net"
 	"strings"
 )
@@ -18,6 +19,8 @@ func NewReader(conn net.Conn) *Reader {
 	}
 }
 
+var ErrExpectedTrailingCRLF = errors.New("expected trailing CRLF")
+
 // ReadLine reads until delimiter '\n' from the reader and
 // checks for valid CRLF('\r\n').
 // It returns the line(string) without CRLF('\r\n').
@@ -32,7 +35,7 @@ func (r *Reader) ReadLine() (string, error) {
 
 	// Check for valid CRLF('\r\n')
 	if !strings.HasSuffix(line, "\r\n") {
-		return "", ErrMalformedRequestLine
+		return "", ErrExpectedTrailingCRLF
 	}
 
 	return strings.TrimSuffix(line, "\r\n"), nil
