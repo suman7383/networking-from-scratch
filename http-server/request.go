@@ -62,7 +62,7 @@ type Request struct {
 	ctx context.Context
 }
 
-var ErrMalformedRequestLine = errors.New("malformed request line: missing CRLF")
+var ErrMalformedRequestLine = errors.New("malformed request line.")
 var ErrInvalidRequestMethod = errors.New("method invalid or not supported. Only send GET request")
 
 func badStringError(err, val string) error { return fmt.Errorf("%s %q", err, val) }
@@ -89,6 +89,11 @@ func readRequest(r *Reader) (req *Request, err error) {
 	if !ok {
 		return nil, badStringError("malformed HTTP request", reqLine)
 	}
+
+	if len(req.RequestURI) == 0 {
+		return nil, ErrMalformedRequestLine
+	}
+
 	if !validMethod(req.Method) {
 		return nil, ErrInvalidRequestMethod
 	}
@@ -102,7 +107,6 @@ func readRequest(r *Reader) (req *Request, err error) {
 		return nil, badStringError("malformed HTTP version", req.Protocol)
 	}
 
-	// TODO
 	// Parse headers
 	// header-field   = field-name ":" OWS field-value OWS  (Where OWS = Optional White Space)
 	req.Header, err = parseHeaders(r)
@@ -146,7 +150,7 @@ func parseHeaders(r *Reader) (Header, error) {
 		}
 
 		// Check for trailing space in key
-		if len(k) == 0 || k[len(k)-1] == ' ' || k[len(k)-1] == '\t' {
+		if len(k) == 0 || k[len(k)-1] == ' ' || k[len(k)-1] == '\t' || strings.Contains(k, " ") {
 			return nil, ErrInvalidHeaderField
 		}
 
