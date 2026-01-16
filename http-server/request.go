@@ -105,6 +105,10 @@ func readRequest(r *Reader) (req *Request, err error) {
 	// TODO
 	// Parse headers
 	// header-field   = field-name ":" OWS field-value OWS  (Where OWS = Optional White Space)
+	req.Header, err = parseHeaders(r)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -112,7 +116,7 @@ func readRequest(r *Reader) (req *Request, err error) {
 var ErrInvalidHeaderField = errors.New("invalid header field")
 
 func parseHeaders(r *Reader) (Header, error) {
-	var h Header
+	h := make(Header)
 
 	// Sample request(after request line)
 	// Host: localhost:8080\r\nUser-Agent: curl/8.0.0\r\nAccept: */*\r\nConnection: close\r\n\r\n
@@ -128,14 +132,26 @@ func parseHeaders(r *Reader) (Header, error) {
 		}
 
 		// Check for leading space
-		if line[0] == ' ' {
+		if line[0] == ' ' || line[0] == '\t' {
 			return nil, ErrInvalidHeaderField
 		}
 
 		// line contains FieldName: Value
 		// Check for colon and a OWS before value
 		// TODO
+		k, v, found := strings.Cut(line, ":")
 
+		if !found {
+			return nil, ErrInvalidHeaderField
+		}
+
+		// Check for trailing space in key
+		if len(k) == 0 || k[len(k)-1] == ' ' || k[len(k)-1] == '\t' {
+			return nil, ErrInvalidHeaderField
+		}
+
+		vsr := strings.TrimSpace(v)
+		h.Add(k, vsr)
 	}
 }
 
