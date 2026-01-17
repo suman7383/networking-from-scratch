@@ -78,13 +78,15 @@ func (s *Server) serve(conn net.Conn) {
 	}
 
 	// Testing (Remove this later)
-	fmt.Printf("%v", req)
-	_, err = io.WriteString(conn, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nOK")
+	// fmt.Printf("%v", req)
+	// _, err = io.WriteString(conn, "HTTP/1.1 200 OK\r\nContent-Length: 2\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\nOK")
 
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
+	// if err != nil {
+	// 	slog.Error(err.Error())
+	// 	return
+	// }
+
+	// Route the request according to target-path
 
 }
 
