@@ -1,19 +1,21 @@
 package main
 
-// Response represesnts the response from an HTTP serverrequest
-type Response struct {
-	Status        string // e.g. "200 OK"
-	StatusCode    int    // e.g. 200
-	Protocol      string // e.g. "HTTP/1.1"
-	ProtocolMajor string // e.g. 1
-	ProtocolMinor string // e.g. 1
+import (
+	"bufio"
+	"net"
+)
 
-	Header Header
+// Response represesnts the server side of an HTTP response
+type response struct {
+	conn net.Conn
 
-	// ContentLength records the length of the associated content.
-	ContentLength int64
+	req *Request
 
-	// Request is the request that was sent to obtain
-	// this response.
-	Request *Request
+	header Header
+
+	wroteHeader bool // Tells that a non 1xx header has been written
+
+	w *bufio.Writer
+
+	contentLength int64
 }
