@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"strings"
 )
 
@@ -67,8 +68,8 @@ var ErrInvalidRequestMethod = errors.New("method invalid or not supported. Only 
 
 func badStringError(err, val string) error { return fmt.Errorf("%s %q", err, val) }
 
-func readRequest(r *Reader) (req *Request, err error) {
-	req = new(Request)
+func readRequest(r *Reader, conn net.Conn) (res *response, err error) {
+	req := new(Request)
 
 	// HTTP request-line = method SP request-target SP HTTP-version CRLF
 	// Where SP = Single Space
@@ -114,7 +115,14 @@ func readRequest(r *Reader) (req *Request, err error) {
 		return nil, err
 	}
 
-	return req, nil
+	res = &response{
+		conn:          conn,
+		req:           req,
+		header:        make(Header),
+		contentLength: -1,
+	}
+
+	return res, nil
 }
 
 var ErrInvalidHeaderField = errors.New("invalid header field")

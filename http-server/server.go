@@ -13,6 +13,8 @@ type Server struct {
 	// Addr Specifies the TCP address for the server to listen on,
 	// in form "host:port".
 	Addr string
+
+	router *Router
 }
 
 func (s *Server) ListenAndServe() error {
@@ -50,7 +52,7 @@ func (s *Server) serve(conn net.Conn) {
 	reader := NewReader(conn)
 
 	// Parse the HTTP request line
-	req, err := readRequest(reader)
+	res, err := readRequest(reader)
 
 	if err != nil {
 		switch {
@@ -87,10 +89,24 @@ func (s *Server) serve(conn net.Conn) {
 	// }
 
 	// Route the request according to target-path
+	// TODO
 
 }
 
-func ListenAndServe(addr string) error {
-	server := &Server{addr}
-	return server.ListenAndServe()
+type HandlerFunc func(ResponseWriter, *Request)
+
+// ServerHTTP calls f(w, r)
+func (f HandlerFunc) ServerHTTP(w ResponseWriter, r *Request) {
+	f(w, r)
+}
+
+func (s *Server) HandleRoute(route string, handlerFn HandlerFunc) {
+	if _, ok := s.router.routes[route]; !ok {
+		s.router.routes[route] = handlerFn
+	}
+}
+
+func ListenAndServe(addr string) (*Server, error) {
+	server := &Server{Addr: addr, router: NewRouter()}
+	return server, server.ListenAndServe()
 }

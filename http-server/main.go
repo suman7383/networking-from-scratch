@@ -6,10 +6,11 @@ import (
 )
 
 func main() {
-	err := ListenAndServe(":8080")
+	_, err := ListenAndServe(":8080")
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+
 }
