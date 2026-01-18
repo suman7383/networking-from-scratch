@@ -52,7 +52,7 @@ func (s *Server) serve(conn net.Conn) {
 	reader := NewReader(conn)
 
 	// Parse the HTTP request line
-	res, err := readRequest(reader)
+	res, err := readRequest(reader, conn)
 
 	if err != nil {
 		switch {
