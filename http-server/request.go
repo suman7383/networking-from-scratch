@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -120,6 +121,7 @@ func readRequest(r *Reader, conn net.Conn) (res *response, err error) {
 		req:           req,
 		header:        make(Header),
 		contentLength: -1,
+		w:             bufio.NewWriter(conn),
 	}
 
 	return res, nil
