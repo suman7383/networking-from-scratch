@@ -27,6 +27,7 @@ func (r *response) Header() Header {
 }
 
 func (r *response) WriteHeader(code int) {
+	r.wroteHeader = true
 	r.status = code
 }
 
@@ -41,4 +42,8 @@ func (r *response) Write(data string) (int, error) {
 	}
 
 	return r.w.WriteString(data)
+}
+
+func (r *response) Flush() error {
+	return r.w.Flush()
 }
