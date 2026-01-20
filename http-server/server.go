@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 )
@@ -14,7 +13,7 @@ type Server struct {
 	// in form "host:port".
 	Addr string
 
-	router Router
+	router *Router
 }
 
 var CRLF = []byte("\r\n")
@@ -62,21 +61,15 @@ func (s *Server) serve(conn net.Conn) {
 			// TODO
 			// Send 400 Error response
 			slog.Error(err.Error())
-			_, errW := io.WriteString(conn, fmt.Sprintf("HTTP/1.1 400 Bad Request\r\n\r\n%s\n", err.Error()))
-			if errW != nil {
-				slog.Error(err.Error())
-				return
-			}
+			res.SetBadRequestHeader()
+			res.finalizeResponse()
 
 		default:
 			// TODO
 			// Send 500 Error response
 			slog.Error(err.Error())
-			_, errW := io.WriteString(conn, fmt.Sprintf("HTTP/1.1 500 Internal Server Error\r\n\r\n%s\n", err.Error()))
-			if errW != nil {
-				slog.Error(err.Error())
-				return
-			}
+			res.SetInternalServerErrHeader()
+			res.finalizeResponse()
 		}
 		return
 	}
@@ -91,7 +84,19 @@ func (s *Server) serve(conn net.Conn) {
 	// }
 
 	// Route the request according to target-path
+	//
+	// Change this to res.req.Path later
+	h, err := s.route(res.req.RequestURI)
 
+	if err != nil {
+		// No route registered for this path
+		// Send 404 error
+		res.SetNotfoundHeader()
+	} else {
+		h.ServerHTTP(res, res.req)
+	}
+
+	res.finalizeResponse()
 }
 
 type HandlerFunc func(ResponseWriter, *Request)
@@ -101,11 +106,18 @@ func (f HandlerFunc) ServerHTTP(w ResponseWriter, r *Request) {
 	f(w, r)
 }
 
-func (s *Server) HandleRoute(route string, handlerFn HandlerFunc) {
-	s.router.AddRoute(route, handlerFn)
+var ErrRouteNotFound = errors.New("route not found")
+
+func (s *Server) route(pattern string) (HandlerFunc, error) {
+	if h, ok := s.router.get(pattern); !ok {
+		return nil, ErrRouteNotFound
+	} else {
+		return h, nil
+	}
+
 }
 
 func ListenAndServe(addr string) (*Server, error) {
-	server := &Server{Addr: addr, router: make(Router)}
+	server := &Server{Addr: addr, router: NewRouter()}
 	return server, server.ListenAndServe()
 }
