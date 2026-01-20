@@ -14,8 +14,10 @@ type Server struct {
 	// in form "host:port".
 	Addr string
 
-	router *Router
+	router Router
 }
+
+var CRLF = []byte("\r\n")
 
 func (s *Server) ListenAndServe() error {
 	ln, err := net.Listen("tcp", s.Addr)
@@ -89,7 +91,6 @@ func (s *Server) serve(conn net.Conn) {
 	// }
 
 	// Route the request according to target-path
-	// TODO
 
 }
 
@@ -101,12 +102,10 @@ func (f HandlerFunc) ServerHTTP(w ResponseWriter, r *Request) {
 }
 
 func (s *Server) HandleRoute(route string, handlerFn HandlerFunc) {
-	if _, ok := s.router.routes[route]; !ok {
-		s.router.routes[route] = handlerFn
-	}
+	s.router.AddRoute(route, handlerFn)
 }
 
 func ListenAndServe(addr string) (*Server, error) {
-	server := &Server{Addr: addr, router: NewRouter()}
+	server := &Server{Addr: addr, router: make(Router)}
 	return server, server.ListenAndServe()
 }

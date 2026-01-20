@@ -1,12 +1,7 @@
 package main
 
-type Router struct {
-	// routes maps a path to a handler func for handling the request.
-	routes map[string]HandlerFunc
-}
+type Router map[string]HandlerFunc
 
-func NewRouter() *Router {
-	return &Router{
-		routes: make(map[string]HandlerFunc),
-	}
+func (r Router) AddRoute(pattern string, handler HandlerFunc) {
+	r[pattern] = handler
 }
