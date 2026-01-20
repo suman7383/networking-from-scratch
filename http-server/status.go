@@ -8,3 +8,18 @@ const (
 
 	StatusInternalServerError = 500
 )
+
+func StatusText(code int) string {
+	switch code {
+	case StatusOK:
+		return "OK"
+	case StatusBadRequest:
+		return "Bad Request"
+	case StatusNotFound:
+		return "Not Found"
+	case StatusInternalServerError:
+		return "Internal Server Error"
+	default:
+		return ""
+	}
+}
