@@ -1,11 +1,9 @@
 package http
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 )
 
@@ -59,8 +57,9 @@ type Request struct {
 	// TODO: Move this to url package
 	Path string
 
-	// ctx is the server context.
-	ctx context.Context
+	// Connection Upgrade Header fields
+	ConnectionUpgrade bool   // Whether Connection: Upgrade Header exists
+	Upgrade           string // Upgrade token value
 }
 
 var ErrMalformedRequestLine = errors.New("malformed request line.")
@@ -69,15 +68,15 @@ var ErrInvalidRequestMethod = errors.New("method invalid or not supported. Only 
 func badStringError(err, val string) error { return fmt.Errorf("%s %q", err, val) }
 
 // TODO: Figure out the return values
-func readRequest(r *Reader, conn net.Conn) (upgrade bool, err error) {
-	req := new(Request)
+func readRequest(r *Reader) (req *Request, err error) {
+	req = new(Request)
 
 	// HTTP request-line = method SP request-target SP HTTP-version CRLF
 	// Where SP = Single Space
 	var reqLine string
 	reqLine, err = r.ReadLine()
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	defer func() {
@@ -89,15 +88,15 @@ func readRequest(r *Reader, conn net.Conn) (upgrade bool, err error) {
 	var ok bool
 	req.Method, req.RequestURI, req.Protocol, ok = parseRequestLine(reqLine)
 	if !ok {
-		return false, badStringError("malformed HTTP request", reqLine)
+		return nil, badStringError("malformed HTTP request", reqLine)
 	}
 
 	if len(req.RequestURI) == 0 {
-		return false, ErrMalformedRequestLine
+		return nil, ErrMalformedRequestLine
 	}
 
 	if !validMethod(req.Method) {
-		return false, ErrInvalidRequestMethod
+		return nil, ErrInvalidRequestMethod
 	}
 
 	// TODO
@@ -106,22 +105,37 @@ func readRequest(r *Reader, conn net.Conn) (upgrade bool, err error) {
 
 	// parse http version
 	if req.ProtocolMajor, req.ProtocolMinor, ok = parseHttpVersion(req.Protocol); !ok {
-		return false, badStringError("malformed HTTP version", req.Protocol)
+		return nil, badStringError("malformed HTTP version", req.Protocol)
 	}
 
 	// Parse headers
 	// header-field   = field-name ":" OWS field-value OWS  (Where OWS = Optional White Space)
 	req.Header, err = parseHeaders(r)
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	// TODO: Read the Sec-Websocket-Key and form a response from it
+	// Extract Connection, Upgrade from header
+	extractConnUpgrade(req)
 
-	return true, nil
+	return req, nil
 }
 
 var ErrInvalidHeaderField = errors.New("invalid header field")
+
+// Checks and Extracts Connection, Upgrade headers from request
+func extractConnUpgrade(req *Request) {
+
+	if v := req.Header.Get("Connection"); len(v) > 0 && v == "Upgrade" {
+		req.ConnectionUpgrade = true
+
+		req.Upgrade = req.Header.Get("Upgrade")
+	} else {
+		req.ConnectionUpgrade = false
+
+	}
+
+}
 
 func parseHeaders(r *Reader) (Header, error) {
 	h := make(Header)
