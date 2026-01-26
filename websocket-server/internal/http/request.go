@@ -68,7 +68,7 @@ var ErrInvalidRequestMethod = errors.New("method invalid or not supported. Only 
 func badStringError(err, val string) error { return fmt.Errorf("%s %q", err, val) }
 
 // TODO: Figure out the return values
-func readRequest(r *Reader) (req *Request, err error) {
+func ReadRequest(r *Reader) (req *Request, err error) {
 	req = new(Request)
 
 	// HTTP request-line = method SP request-target SP HTTP-version CRLF

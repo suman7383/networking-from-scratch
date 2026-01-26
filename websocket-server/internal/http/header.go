@@ -51,7 +51,7 @@ func (h Header) Get(key string) string {
 //
 // It is case insensitive
 func (h Header) Values(key string) []string {
-	kl := strings.ToLower(key)
+	kl := textproto.CanonicalMIMEHeaderKey(key)
 
 	if h == nil {
 		return nil

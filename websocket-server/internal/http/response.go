@@ -44,6 +44,7 @@ func (r *Response) Write(b []byte) {
 func (r *Response) WriteHeader(code int) {
 	if !r.wroteHeader {
 		r.status = code
+		r.wroteHeader = true
 	}
 }
 
@@ -72,13 +73,13 @@ func (r *Response) setAutoHeaders(closeConn bool) {
 
 }
 
-var CRLF = []byte("/r/n")
+var CRLF = []byte("\r\n")
 
 // Parse the response and send to wire(conn)
 //
 // closeConn decides whether to close the underlying connection
 // i.e send Connection: close headers
-func (r *Response) FinalizeResponse(closeConn bool) {
+func (r *Response) FinalizeResponse(closeConn bool, setAutoHeaders bool) {
 	// write status-line
 	if !r.wroteHeader {
 		r.WriteHeader(StatusOK)
@@ -98,10 +99,16 @@ func (r *Response) FinalizeResponse(closeConn bool) {
 	r.writeToWire(nil, sl)
 
 	// Set Auto headers
-	r.setAutoHeaders(closeConn)
+	if setAutoHeaders {
+		r.setAutoHeaders(closeConn)
+	}
 
 	// set contentLength
-	r.Header().Add("Content-Length", strconv.Itoa(len(r.body)))
+	//
+	// Skip if switching protocol
+	if r.status != StatusSwitchingProtocols {
+		r.Header().Add("Content-Length", strconv.Itoa(len(r.body)))
+	}
 
 	// Reset the string builder for headers
 	sb.Reset()

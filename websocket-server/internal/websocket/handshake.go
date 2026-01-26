@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/suman7383/networking-from-scratch/websocket-server/internal/http"
+	"github.com/suman7383/networking-from-scratch/websocket-server/utils"
 )
 
 var ErrBadHandshake = errors.New("Bad handshake")
@@ -14,15 +15,16 @@ var ErrClientVersion = errors.New("Unsupported version")
 
 var guid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-var swsvk = "Sec-Websocket-Version"
+var swsvk = "Sec-WebSocket-Version"
 var swsak = "Sec-WebSocket-Accept"
+var swsk = "Sec-WebSocket-Key"
 
-func handleHandshake(req *http.Request, conn net.Conn) (WebsocketConn *WebSocketConn, err error) {
+func HandleHandshake(req *http.Request, conn net.Conn) (WebsocketConn *WebSocketConn, err error) {
 	// TODO: Validate WebSocket-only headers\
 	key, err := validateHeaders(req)
 	if err != nil {
 		// Send HTTP error response
-		writeErrResponse(conn, http.StatusBadRequest, err.Error())
+		utils.WriteErrResponse(conn, http.StatusBadRequest, err.Error())
 
 		return nil, err
 	}
@@ -48,13 +50,14 @@ func sendSwitchingProtoResponse(swsa string, conn net.Conn) {
 	res := http.NewResponse(conn)
 
 	// Set Sec-WebSocket-Accept and Sec-WebSocket-Version: 13 header
-	res.Header().Set(swsak, swsa)
-	res.Header().Set(swsvk, "13")
+	res.Header()[swsak] = []string{swsa}
+	res.Header().Set("Connection", "Upgrade")
+	res.Header().Set("Upgrade", "websocket")
 
 	// Set 101 status
 	res.WriteHeader(http.StatusSwitchingProtocols)
 
-	res.FinalizeResponse(false)
+	res.FinalizeResponse(false, false)
 }
 
 func computeWebsocketAccept(key string) string {
@@ -72,12 +75,12 @@ func validateHeaders(req *http.Request) (key string, err error) {
 	// Sec-WebSocket-Key, Sec-WebSocket-Version
 	//
 	// We validate only the above two as for now we don't care about others
-	key = req.Header.Get(swsak)
+	key = req.Header.Get(swsk)
 
 	// Checks if Version is strictly 13(and not list of versions)
 	ver13 := func() bool {
 
-		if v := req.Header[swsvk]; len(v) == 1 {
+		if v := req.Header.Values(swsvk); len(v) == 1 {
 			return v[0] == "13"
 		} else {
 			return false
@@ -96,15 +99,3 @@ func validateHeaders(req *http.Request) (key string, err error) {
 }
 
 var CRLF = []byte("\r\n")
-
-func writeErrResponse(conn net.Conn, status int, errMsg string) {
-	res := http.NewResponse(conn)
-
-	// write status
-	res.WriteHeader(status)
-
-	// write response body
-	res.Write([]byte(errMsg))
-
-	res.FinalizeResponse(true)
-}
