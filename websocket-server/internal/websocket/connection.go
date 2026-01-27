@@ -8,6 +8,8 @@ import (
 // TODO: Write the necessary methods
 type WebSocketConn struct {
 	conn net.Conn
+	r    *FrameReader
+	w    *FrameWriter
 }
 
 // TODO
