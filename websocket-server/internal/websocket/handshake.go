@@ -38,6 +38,8 @@ func HandleHandshake(req *http.Request, conn net.Conn) (WebsocketConn *WebSocket
 	// Take ownership of the connection and create WebsocketConn
 	wsc := &WebSocketConn{
 		conn: conn,
+		r:    NewFrameReader(conn),
+		w:    NewFrameWriter(conn),
 	}
 
 	return wsc, nil

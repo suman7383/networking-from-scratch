@@ -1,9 +1,18 @@
 package websocket
 
-import "bufio"
+import (
+	"bufio"
+	"net"
+)
 
 type FrameWriter struct {
 	w *bufio.Writer
+}
+
+func NewFrameWriter(conn net.Conn) *FrameWriter {
+	return &FrameWriter{
+		w: bufio.NewWriter(conn),
+	}
 }
 
 // TODO
