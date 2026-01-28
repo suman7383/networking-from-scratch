@@ -34,12 +34,6 @@ func (fr *FrameReader) ReadFrame() (*Frame, error) {
 	}
 
 	// TODO
-	// MASK | PAYLOAD LEN
-
-	// TODO
-	// EXT LEN
-
-	// TODO
 	// MASK KEY
 
 	// TODO
@@ -59,6 +53,18 @@ var ErrExtensionNotSupported = errors.New("extension not supported")
 var ErrProtocol = errors.New("protocol error")
 var ErrPayloadTooLarge = errors.New("payload is too large")
 
+// parseFrameInfo reads from conn and forms these following data:
+//
+// FIN- whether it is final frame(we only expect FIN 1, fragmentation is unsupported)
+//
+// OPCODE- Type of frame(continuation, text, binary, close, ping, pong)
+//
+// MASK- Whether the payload is masked(We always expect this to be 1)
+//
+// BASE_PAYLOAD_LENGTH- Length of the payload data
+//
+// EXT_PAYLOAD_LENGTH- If BASE PAYLOAD LEN was > 125, we read EXT PAYLOAD LEN to get actual
+// payload length
 func (fr *FrameReader) parseFrameInfo(f *Frame) error {
 	// Read 2 bytes
 	//
@@ -66,8 +72,8 @@ func (fr *FrameReader) parseFrameInfo(f *Frame) error {
 	//
 	// payload length:
 	// 0-125: payload length
-	// 126: next 2 bytes = actual length
-	// 127: next 8 bytes = actual length
+	// 126: next 2 bytes = actual length (return error if control frame or actual length < 126)
+	// 127: next 8 bytes = actual length (not-supported here so we return error if 127)
 	info := make([]byte, 2)
 
 	if _, err := io.ReadFull(fr.r, info); err != nil {
@@ -124,8 +130,6 @@ func (fr *FrameReader) parseFrameInfo(f *Frame) error {
 			return err
 		} else {
 			// Reject if actual length is < 126
-			// And
-			// Reject if actual length > 126 and control frame
 			if epl < 126 {
 				return ErrProtocol
 			}
