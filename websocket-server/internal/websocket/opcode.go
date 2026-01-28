@@ -10,3 +10,7 @@ const (
 	OpPing         Opcode = 0x9
 	OpPong         Opcode = 0xA
 )
+
+func (oc Opcode) IsControlFrame() bool {
+	return oc == OpClose || oc == OpPing || oc == OpPong
+}
