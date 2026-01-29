@@ -7,6 +7,8 @@ import (
 	"io"
 	"log/slog"
 	"net"
+
+	"github.com/suman7383/networking-from-scratch/websocket-server/utils"
 )
 
 type FrameReader struct {
@@ -33,11 +35,26 @@ func (fr *FrameReader) ReadFrame() (*Frame, error) {
 		return nil, err
 	}
 
-	// TODO
 	// MASK KEY
+	mKey, err := fr.readMaskKey()
+	if err != nil {
+		utils.LogErr("could not read mask key", err)
 
-	// TODO
+		return nil, err
+	}
+
+	frame.MaskKey = [4]byte(mKey)
+
 	// PAYLOAD
+	payloadD, err := fr.readPayload(frame.PayloadLen)
+	if err != nil {
+		utils.LogErr("could not read payload", err)
+
+		return nil, err
+	}
+
+	// UNMASK Payload
+	fr.unmaskPayload(payloadD, frame.MaskKey[:])
 
 	return &frame, nil
 }
@@ -155,4 +172,36 @@ func (fr *FrameReader) readExtPayloadLen16() (len uint16, err error) {
 	}
 
 	return binary.BigEndian.Uint16(extPayloadLen), nil
+}
+
+// Reads the mask key used for unmasking payload data
+func (fr *FrameReader) readMaskKey() (key []byte, err error) {
+	// Read 4 bytes
+	key = make([]byte, 4)
+
+	_, err = io.ReadFull(fr.r, key)
+	if err != nil {
+		return nil, ErrReadingInfo
+	}
+
+	return key, nil
+}
+
+// Reads the masked payload data
+func (fr *FrameReader) readPayload(payloadLen uint16) (data []byte, err error) {
+	data = make([]byte, payloadLen)
+
+	_, err = io.ReadFull(fr.r, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+// Unmasks the payload data using the mask key
+func (fr *FrameReader) unmaskPayload(data, mask []byte) {
+	for i := range data {
+		data[i] ^= mask[i%4]
+	}
 }
