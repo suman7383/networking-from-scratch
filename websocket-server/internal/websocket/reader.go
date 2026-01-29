@@ -23,7 +23,6 @@ func NewFrameReader(conn net.Conn) *FrameReader {
 
 var ErrReadingInfo = errors.New("could not read frame")
 
-// TODO
 func (fr *FrameReader) ReadFrame() (*Frame, error) {
 	// A Websocket frame looks like this on the wire:
 	//
@@ -55,6 +54,7 @@ func (fr *FrameReader) ReadFrame() (*Frame, error) {
 
 	// UNMASK Payload
 	fr.unmaskPayload(payloadD, frame.MaskKey[:])
+	frame.Payload = payloadD
 
 	return &frame, nil
 }
