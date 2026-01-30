@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/suman7383/networking-from-scratch/websocket-server/cmd/server"
+	"github.com/suman7383/networking-from-scratch/websocket-server/internal/server"
 )
 
 func main() {

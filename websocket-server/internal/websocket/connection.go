@@ -10,6 +10,8 @@ import (
 	"github.com/suman7383/networking-from-scratch/websocket-server/utils"
 )
 
+type HandlerFunc func()
+
 // TODO: Write the necessary methods
 type WebSocketConn struct {
 	conn         net.Conn

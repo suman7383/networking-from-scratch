@@ -5,7 +5,7 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/suman7383/networking-from-scratch/websocket-server/internal/http"
+	"github.com/suman7383/networking-from-scratch/websocket-server/internal/httpcore"
 	"github.com/suman7383/networking-from-scratch/websocket-server/internal/websocket"
 	"github.com/suman7383/networking-from-scratch/websocket-server/utils"
 )
@@ -47,13 +47,13 @@ func (s *Server) serve(conn net.Conn) {
 	defer conn.Close()
 
 	// TODO: Read and parse the incomming request
-	reader := http.NewReader(conn)
+	reader := httpcore.NewReader(conn)
 
-	req, err := http.ReadRequest(reader)
+	req, err := httpcore.ReadRequest(reader)
 
 	if err != nil {
 		// Send error response
-		utils.WriteErrResponse(conn, http.StatusBadRequest, err.Error())
+		utils.WriteErrResponse(conn, httpcore.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -63,7 +63,7 @@ func (s *Server) serve(conn net.Conn) {
 
 	if err != nil {
 		// Send error (no upgrade header found)
-		utils.WriteErrResponse(conn, http.StatusBadRequest, err.Error())
+		utils.WriteErrResponse(conn, httpcore.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -87,7 +87,7 @@ var ErrMissingConnectionUpgrade = errors.New("Missing Connection upgrade header"
 var ErrUnsupportedUpgrade = errors.New("Provided upgrade not support")
 
 // TODO
-func (s *Server) handleUpgradeControl(req *http.Request) error {
+func (s *Server) handleUpgradeControl(req *httpcore.Request) error {
 	if !req.ConnectionUpgrade {
 		return ErrMissingConnectionUpgrade
 	}

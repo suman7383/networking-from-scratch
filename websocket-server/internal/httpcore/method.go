@@ -1,4 +1,4 @@
-package http
+package httpcore
 
 // Common HTTP methods.
 //

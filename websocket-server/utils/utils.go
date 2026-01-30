@@ -4,11 +4,11 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/suman7383/networking-from-scratch/websocket-server/internal/http"
+	"github.com/suman7383/networking-from-scratch/websocket-server/internal/httpcore"
 )
 
 func WriteErrResponse(conn net.Conn, status int, errMsg string) {
-	res := http.NewResponse(conn)
+	res := httpcore.NewResponse(conn)
 
 	// write status
 	res.WriteHeader(status)

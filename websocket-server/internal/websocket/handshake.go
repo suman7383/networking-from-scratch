@@ -6,7 +6,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/suman7383/networking-from-scratch/websocket-server/internal/http"
+	"github.com/suman7383/networking-from-scratch/websocket-server/internal/httpcore"
 	"github.com/suman7383/networking-from-scratch/websocket-server/utils"
 )
 
@@ -19,12 +19,12 @@ var swsvk = "Sec-WebSocket-Version"
 var swsak = "Sec-WebSocket-Accept"
 var swsk = "Sec-WebSocket-Key"
 
-func HandleHandshake(req *http.Request, conn net.Conn) (WebsocketConn *WebSocketConn, err error) {
+func HandleHandshake(req *httpcore.Request, conn net.Conn) (WebsocketConn *WebSocketConn, err error) {
 	// TODO: Validate WebSocket-only headers\
 	key, err := validateHeaders(req)
 	if err != nil {
 		// Send HTTP error response
-		utils.WriteErrResponse(conn, http.StatusBadRequest, err.Error())
+		utils.WriteErrResponse(conn, httpcore.StatusBadRequest, err.Error())
 
 		return nil, err
 	}
@@ -49,7 +49,7 @@ func HandleHandshake(req *http.Request, conn net.Conn) (WebsocketConn *WebSocket
 //
 // Adds Sec-WebSocket-Accept: <value> header
 func sendSwitchingProtoResponse(swsa string, conn net.Conn) {
-	res := http.NewResponse(conn)
+	res := httpcore.NewResponse(conn)
 
 	// Set Sec-WebSocket-Accept and Sec-WebSocket-Version: 13 header
 	res.Header()[swsak] = []string{swsa}
@@ -57,7 +57,7 @@ func sendSwitchingProtoResponse(swsa string, conn net.Conn) {
 	res.Header().Set("Upgrade", "websocket")
 
 	// Set 101 status
-	res.WriteHeader(http.StatusSwitchingProtocols)
+	res.WriteHeader(httpcore.StatusSwitchingProtocols)
 
 	res.FinalizeResponse(false, false)
 }
@@ -73,7 +73,7 @@ func computeWebsocketAccept(key string) string {
 	return base64.StdEncoding.EncodeToString(sha1Bytes)
 }
 
-func validateHeaders(req *http.Request) (key string, err error) {
+func validateHeaders(req *httpcore.Request) (key string, err error) {
 	// Sec-WebSocket-Key, Sec-WebSocket-Version
 	//
 	// We validate only the above two as for now we don't care about others
