@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -72,6 +73,67 @@ func readServerResponse(r *bufio.Reader) {
 	}
 }
 
+func readFrameFromServer(r *bufio.Reader) {
+	// ---- Read first 2 bytes ----
+	b1, err := r.ReadByte()
+	if err != nil {
+		fmt.Println("read b1 error:", err)
+		return
+	}
+
+	b2, err := r.ReadByte()
+	if err != nil {
+		fmt.Println("read b2 error:", err)
+		return
+	}
+
+	fin := (b1 & 0x80) != 0
+	opcode := b1 & 0x0F
+
+	masked := (b2 & 0x80) != 0
+	payloadLen := int(b2 & 0x7F)
+
+	fmt.Printf("SERVER FRAME: FIN=%v OPCODE=0x%x MASKED=%v\n",
+		fin, opcode, masked)
+
+	if masked {
+		fmt.Println("protocol error: server frame must not be masked")
+		return
+	}
+
+	// ---- Extended payload length ----
+	if payloadLen == 126 {
+		ext := make([]byte, 2)
+		if _, err := io.ReadFull(r, ext); err != nil {
+			fmt.Println("read ext len error:", err)
+			return
+		}
+		payloadLen = int(binary.BigEndian.Uint16(ext))
+	} else if payloadLen == 127 {
+		fmt.Println("127-bit payloads not supported")
+		return
+	}
+
+	// ---- Read payload ----
+	payload := make([]byte, payloadLen)
+	if payloadLen > 0 {
+		if _, err := io.ReadFull(r, payload); err != nil {
+			fmt.Println("read payload error:", err)
+			return
+		}
+	}
+
+	// ---- Print payload ----
+	fmt.Println("SERVER PAYLOAD LEN:", payloadLen)
+	fmt.Println("SERVER PAYLOAD (text):", string(payload))
+
+	fmt.Print("SERVER PAYLOAD (hex):")
+	for _, b := range payload {
+		fmt.Printf(" %02x", b)
+	}
+	fmt.Println()
+}
+
 // =====================
 // Success: payload len <= 125
 // =====================
@@ -93,7 +155,7 @@ func testTextPayloadSmall() {
 	w.Write(frame)
 	w.Flush()
 
-	readServerResponse(r)
+	readFrameFromServer(r)
 }
 
 // =====================
@@ -115,7 +177,7 @@ func testControlFramePing() {
 	w.Write(frame)
 	w.Flush()
 
-	readServerResponse(r)
+	readFrameFromServer(r)
 }
 
 // =====================
@@ -147,7 +209,7 @@ func testPayloadLen126() {
 	w.Write(frame)
 	w.Flush()
 
-	readServerResponse(r)
+	readFrameFromServer(r)
 }
 
 // =====================
@@ -170,7 +232,7 @@ func testFragmentedFrame() {
 	w.Write(frame)
 	w.Flush()
 
-	readServerResponse(r)
+	readFrameFromServer(r)
 }
 
 // =====================
@@ -192,7 +254,7 @@ func testMaskBitZero() {
 	w.Write(frame)
 	w.Flush()
 
-	readServerResponse(r)
+	readFrameFromServer(r)
 }
 
 // =====================
@@ -215,5 +277,5 @@ func testRSVBitSet() {
 	w.Write(frame)
 	w.Flush()
 
-	readServerResponse(r)
+	readFrameFromServer(r)
 }
