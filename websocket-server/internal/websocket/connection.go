@@ -4,15 +4,20 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
 	"github.com/suman7383/networking-from-scratch/websocket-server/utils"
 )
 
-type HandlerFunc func()
+type HandlerFunc func(w DataWriter, data []byte)
 
-// TODO: Write the necessary methods
+// Calls the handler function
+func (h HandlerFunc) CallFn(w DataWriter, data []byte) {
+	h(w, data)
+}
+
 type WebSocketConn struct {
 	conn         net.Conn
 	r            *FrameReader
@@ -21,6 +26,7 @@ type WebSocketConn struct {
 	closeReceive bool // Whether close frame received
 	closeCh      chan struct{}
 	closed       bool // Whether the TCP conn is closed
+	hander       HandlerFunc
 }
 
 // TODO
@@ -35,6 +41,9 @@ func (w *WebSocketConn) Handle() {
 	for {
 		fr, err := w.r.ReadFrame()
 		if err != nil {
+			if err == io.EOF || err == io.ErrUnexpectedEOF {
+				return
+			}
 			// Send Close control frame with error status
 			utils.LogErr("reading frame error", err)
 			w.initiateClose(CloseProtocolErr, CloseProtocolErr.String())
@@ -58,8 +67,6 @@ func (w *WebSocketConn) Handle() {
 
 			w.w.WriteFrame(frW)
 		case OpClose:
-			// TODO
-			//
 			// Send CLOSE FRAME
 			//
 			// If CLOSE frame is not already sent by server
@@ -75,9 +82,8 @@ func (w *WebSocketConn) Handle() {
 			// Send CLOSE FRAME
 			w.initiateClose(CloseProtocolErr, "Fragmentation unsupported")
 		case OpText, OpBinary:
-			// TODO
-			//
 			// Handle this data to user(application layer) to handle
+			w.hander.CallFn(w.w, fr.Payload)
 		default:
 			// CONTROL SHOULD NEVER REACH HERE
 			// Send close frame

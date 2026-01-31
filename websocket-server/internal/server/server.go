@@ -13,12 +13,14 @@ import (
 type Server struct {
 	// Addr Specifies the TCP address for the server to listen on,
 	// in form "host:port".
-	Addr string
+	Addr    string
+	Handler websocket.HandlerFunc
 }
 
-func NewServer(addr string) *Server {
+func NewServer(addr string, handler websocket.HandlerFunc) *Server {
 	return &Server{
-		Addr: addr,
+		Addr:    addr,
+		Handler: handler,
 	}
 }
 
@@ -68,7 +70,7 @@ func (s *Server) serve(conn net.Conn) {
 	}
 
 	// Handshake
-	wsc, err := websocket.HandleHandshake(req, conn)
+	wsc, err := websocket.HandleHandshake(req, conn, s.Handler)
 
 	if err != nil {
 		// TODO: Handshake failure. Failure response is already sent

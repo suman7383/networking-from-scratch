@@ -96,7 +96,7 @@ func (fr *FrameReader) parseFrameInfo(f *Frame) error {
 	if _, err := io.ReadFull(fr.r, info); err != nil {
 		slog.Error(err.Error())
 
-		return ErrReadingInfo
+		return err
 	}
 
 	// FIN

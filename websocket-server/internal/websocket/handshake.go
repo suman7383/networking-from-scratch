@@ -19,7 +19,7 @@ var swsvk = "Sec-WebSocket-Version"
 var swsak = "Sec-WebSocket-Accept"
 var swsk = "Sec-WebSocket-Key"
 
-func HandleHandshake(req *httpcore.Request, conn net.Conn) (WebsocketConn *WebSocketConn, err error) {
+func HandleHandshake(req *httpcore.Request, conn net.Conn, handler HandlerFunc) (WebsocketConn *WebSocketConn, err error) {
 	// TODO: Validate WebSocket-only headers\
 	key, err := validateHeaders(req)
 	if err != nil {
@@ -37,9 +37,14 @@ func HandleHandshake(req *httpcore.Request, conn net.Conn) (WebsocketConn *WebSo
 
 	// Take ownership of the connection and create WebsocketConn
 	wsc := &WebSocketConn{
-		conn: conn,
-		r:    NewFrameReader(conn),
-		w:    NewFrameWriter(conn),
+		conn:         conn,
+		r:            NewFrameReader(conn),
+		w:            NewFrameWriter(conn),
+		hander:       handler,
+		closeCh:      make(chan struct{}),
+		closeSent:    false,
+		closeReceive: false,
+		closed:       false,
 	}
 
 	return wsc, nil

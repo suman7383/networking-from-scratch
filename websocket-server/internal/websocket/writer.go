@@ -3,6 +3,7 @@ package websocket
 import (
 	"bufio"
 	"encoding/binary"
+	"fmt"
 	"net"
 
 	"github.com/suman7383/networking-from-scratch/websocket-server/utils"
@@ -89,6 +90,14 @@ func (fw *FrameWriter) write(b []byte) error {
 	}
 
 	return nil
+}
+
+func (fw *FrameWriter) Send(data []byte, dt DataType) {
+	// TODO
+	//
+	// Write data Frame
+	fmt.Println("TODO Send function")
+	fmt.Printf("data is, %v", data)
 }
 
 func (fw *FrameWriter) flush() {
