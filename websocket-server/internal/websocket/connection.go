@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"time"
 
@@ -35,10 +36,20 @@ func (w *WebSocketConn) Handle() {
 		if !w.closed {
 			w.closeTCPConn()
 		}
+
+		slog.Info("CLIENT disconnected", slog.String("Addr", w.conn.RemoteAddr().String()))
 	}()
+
+	// Handles errors on readers, writers
+	go w.readWriteError()
 
 	// Read for incoming frames
 	for {
+
+		if w.closed {
+			return
+		}
+
 		fr, err := w.r.ReadFrame()
 		if err != nil {
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -46,6 +57,11 @@ func (w *WebSocketConn) Handle() {
 			}
 			// Send Close control frame with error status
 			utils.LogErr("reading frame error", err)
+
+			if w.closed {
+				return
+			}
+
 			w.initiateClose(CloseProtocolErr, CloseProtocolErr.String())
 			continue
 		}
@@ -65,7 +81,7 @@ func (w *WebSocketConn) Handle() {
 			// Set Masked to false(server to client payload is not masked)
 			frW.Masked = false
 
-			w.w.WriteFrame(frW)
+			w.writeFrame(frW)
 		case OpClose:
 			// Send CLOSE FRAME
 			//
@@ -93,16 +109,30 @@ func (w *WebSocketConn) Handle() {
 	}
 }
 
+func (w *WebSocketConn) readWriteError() {
+
+	select {
+	case <-w.r.closeCh:
+		slog.Info("Closing due to read error")
+		w.initiateClose(CloseInternalError, CloseInternalError.String())
+	case <-w.w.closeCh:
+		slog.Info("Closing due to write error")
+		w.initiateClose(CloseInternalError, CloseInternalError.String())
+	}
+
+}
+
 // Marks closeReceived to true and sends signal to "close" channel
 func (w *WebSocketConn) closeReceived() {
 	w.closeReceive = true
+	slog.Info("Received CLOSE from CLIENT")
 	close(w.closeCh)
 }
 
 const DEFAULT_CLOSE_TIMEOUT = 5 * time.Second
 
 func (w *WebSocketConn) initiateClose(code CloseStatus, reason string) {
-	if w.closeSent {
+	if w.closeSent || w.closed {
 		return
 	}
 
@@ -129,7 +159,7 @@ func (w *WebSocketConn) closeTCPConn() {
 var ErrConnectionClosing = errors.New("Writes closed, connection closing")
 
 func (w *WebSocketConn) writeFrame(f *Frame) error {
-	if w.closeSent {
+	if w.closeSent || w.closed {
 		return ErrConnectionClosing
 	}
 
@@ -143,7 +173,7 @@ func (w *WebSocketConn) sendErrCloseFrame(code CloseStatus, reason string) {
 
 	fr := CloseFrame(code, []byte(reason))
 
-	w.w.WriteFrame(fr)
+	w.writeFrame(fr)
 }
 
 func (w *WebSocketConn) sendCloseFrame() {

@@ -12,12 +12,14 @@ import (
 )
 
 type FrameReader struct {
-	r *bufio.Reader
+	r       *bufio.Reader
+	closeCh chan struct{}
 }
 
 func NewFrameReader(conn net.Conn) *FrameReader {
 	return &FrameReader{
-		r: bufio.NewReader(conn),
+		r:       bufio.NewReader(conn),
+		closeCh: make(chan struct{}),
 	}
 }
 

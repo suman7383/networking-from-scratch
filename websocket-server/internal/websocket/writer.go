@@ -3,23 +3,23 @@ package websocket
 import (
 	"bufio"
 	"encoding/binary"
-	"fmt"
 	"net"
 
 	"github.com/suman7383/networking-from-scratch/websocket-server/utils"
 )
 
 type FrameWriter struct {
-	w *bufio.Writer
+	w       *bufio.Writer
+	closeCh chan struct{}
 }
 
 func NewFrameWriter(conn net.Conn) *FrameWriter {
 	return &FrameWriter{
-		w: bufio.NewWriter(conn),
+		w:       bufio.NewWriter(conn),
+		closeCh: make(chan struct{}),
 	}
 }
 
-// TODO
 func (fw *FrameWriter) WriteFrame(f *Frame) error {
 	// Write 2 bytes
 	//
@@ -33,7 +33,6 @@ func (fw *FrameWriter) WriteFrame(f *Frame) error {
 	// 0-125: payload length
 	// 126: next 2 bytes = actual length
 	// 127: next 8 bytes = actual length (not-supported here)
-
 	info := make([]byte, 2)
 
 	info[0] = (1 << 7)        // FIN = 1 (bit 7)
@@ -93,11 +92,28 @@ func (fw *FrameWriter) write(b []byte) error {
 }
 
 func (fw *FrameWriter) Send(data []byte, dt DataType) {
-	// TODO
-	//
 	// Write data Frame
-	fmt.Println("TODO Send function")
-	fmt.Printf("data is, %v", data)
+	var op Opcode
+
+	if dt == DataTypeText {
+		op = OpText
+	} else {
+		op = OpBinary
+	}
+
+	fr := &Frame{
+		Fin:        true,
+		Opcode:     op,
+		Masked:     false,
+		PayloadLen: uint16(len(data)),
+		Payload:    data,
+	}
+
+	err := fw.WriteFrame(fr)
+	if err != nil {
+		// Inform about an error to initiate close
+		fw.closeCh <- struct{}{}
+	}
 }
 
 func (fw *FrameWriter) flush() {
