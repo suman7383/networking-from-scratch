@@ -1,9 +1,12 @@
 package server
 
 import (
+	"crypto/tls"
 	"errors"
+	"log"
 	"log/slog"
 	"net"
+	"os"
 
 	"github.com/suman7383/networking-from-scratch/websocket-server/internal/httpcore"
 	"github.com/suman7383/networking-from-scratch/websocket-server/internal/websocket"
@@ -25,7 +28,23 @@ func NewServer(addr string, handler websocket.HandlerFunc) *Server {
 }
 
 func (s *Server) ListenAndServe() error {
-	ln, err := net.Listen("tcp", s.Addr)
+
+	cwd, _ := os.Getwd()
+	log.Println("Working directory:", cwd)
+
+	// load the cert
+	cert, err := tls.LoadX509KeyPair("certs/server.crt", "certs/server.key")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create the Tls config
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	ln, err := tls.Listen("tcp", s.Addr, tlsConfig)
 	if err != nil {
 		return err
 	}

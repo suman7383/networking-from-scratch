@@ -1,0 +1,25 @@
+# ===== Go =====
+/bin/
+/pkg/
+*.exe
+*.exe~
+*.out
+*.test
+*.prof
+
+# ===== Certificates / TLS =====
+certs/*.crt
+certs/*.key
+certs/*.pem
+
+# ===== Environment =====
+.env
+
+# ===== Editor / OS =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ===== Logs =====
+*.log
