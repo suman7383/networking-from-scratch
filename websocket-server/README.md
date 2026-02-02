@@ -1,19 +1,22 @@
-# Minimal WebSocket Server (RFC 6455) — Built from Scratch in Go
+# Minimal WebSocket Server (RFC 6455) — Built from Scratch in Go (with TLS)
 
-A **minimal, RFC-compliant WebSocket server implemented from scratch in Go**, without using `net/http`’s WebSocket support or any third-party libraries.
+A **minimal, RFC-compliant WebSocket server implemented from scratch in Go**, without using `net/http`’s WebSocket support or any third‑party libraries.
 
-This project focuses on **protocol correctness**, **bit-level framing**, and **real browser compatibility**, rather than feature completeness.
+This project focuses on **protocol correctness**, **bit‑level framing**, and **real browser compatibility**, and now includes **TLS support (`wss://`)** to mirror real‑world production setups.
 
 The server has been tested against:
 - a custom Go WebSocket client
 - modern browsers (Chrome / Firefox)
+- both plain WebSocket (`ws://`) and secure WebSocket (`wss://`)
 
 ---
 
 ## Motivation
 
-The goal of this project was to deeply understand **how WebSockets actually work** at the protocol level:
+The goal of this project was to deeply understand **how WebSockets actually work** at the protocol level, and how they fit into the real network stack:
 
+- TCP as a byte stream
+- TLS as a transport‑layer security wrapper
 - HTTP → WebSocket upgrade
 - WebSocket frame format
 - Masking rules
@@ -21,11 +24,18 @@ The goal of this project was to deeply understand **how WebSockets actually work
 - Control frames (PING / PONG / CLOSE)
 - Graceful connection shutdown
 
-Instead of relying on existing libraries, everything was implemented directly from **RFC 6455**.
+Instead of relying on existing libraries, everything was implemented directly from **RFC 6455**, with TLS handled explicitly at the listener level.
 
 ---
 
 ## Features Implemented
+
+### TLS (`wss://`)
+- TLS enabled using Go’s `crypto/tls`
+- Self‑signed certificate for local development
+- Correct certificate handling for `localhost`
+- Browser‑compatible secure WebSocket connections
+- TLS cleanly layered below HTTP and WebSocket logic
 
 ### HTTP Handshake
 - Full HTTP/1.1 request parsing
@@ -44,12 +54,12 @@ Instead of relying on existing libraries, everything was implemented directly fr
   - CLOSE
 - Payload length handling:
   - `< 126`
-  - `126` (16-bit extended payload length)
-- Correct **network byte order (big-endian)** handling
+  - `126` (16‑bit extended payload length)
+- Correct **network byte order (big‑endian)** handling
 - Strict validation of:
   - RSV bits
   - opcode validity
-  - control frame constraints
+  - control‑frame constraints
 
 ### Masking
 - Enforces **client → server masking**
@@ -65,14 +75,15 @@ Instead of relying on existing libraries, everything was implemented directly fr
 
 ### Graceful Close Handshake
 - Supports both:
-  - client-initiated close
-  - server-initiated close
+  - client‑initiated close
+  - server‑initiated close
 - Proper CLOSE frame exchange before TCP shutdown
 - Browser reports clean closure (`1000 Normal Closure`)
 
 ### Browser Compatibility
 - Successfully tested with real browsers using the JavaScript `WebSocket` API
 - Compatible with standard browser behavior (no extensions required)
+- Works correctly over **TLS (`wss://`)**
 
 ---
 
@@ -83,7 +94,7 @@ The following features are intentionally **not supported** to keep the server mi
 - Fragmentation (`FIN = 0`, continuation frames)
 - WebSocket extensions (RSV bits must be 0)
 - Compression (`permessage-deflate`)
-- 64-bit payload lengths (`127` case)
+- 64‑bit payload lengths (`127` case)
 - Subprotocol negotiation
 
 The server **explicitly rejects** unsupported cases instead of silently accepting them.
@@ -92,26 +103,53 @@ The server **explicitly rejects** unsupported cases instead of silently acceptin
 
 ## How to Run
 
+### 1. Generate a local TLS certificate
+
 ```bash
-go run main.go
+openssl req -x509 -newkey rsa:2048 \
+  -keyout certs/server.key \
+  -out certs/server.crt \
+  -days 365 \
+  -nodes \
+  -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+```
+
+> The browser will warn about the certificate being self‑signed.  
+> This is expected for local development.
+
+---
+
+### 2. Start the server
+
+Run from the **project root**:
+
+```bash
+go run internal/server/server.go
 ```
 
 The server listens on:
 
 ```
-ws://localhost:8080
+wss://localhost:8443
 ```
 
 ---
 
 ## Testing
 
-### Browser Test
+### Browser Test (TLS)
 
-Open a regular web page (not `chrome://`) and run in DevTools:
+1. First, visit in the browser:
+   ```
+   https://localhost:8443
+   ```
+   Accept the certificate warning.
+
+2. Then open DevTools and run:
 
 ```js
-const ws = new WebSocket("ws://localhost:8080");
+const ws = new WebSocket("wss://localhost:8443");
 
 ws.onopen = () => {
   console.log("CONNECTED");
@@ -128,7 +166,7 @@ ws.onclose = (e) => {
 ```
 
 Expected behavior:
-- Connection opens successfully
+- Secure connection opens successfully
 - Messages are exchanged
 - `ws.close()` results in a clean close (`1000 Normal`)
 
@@ -139,8 +177,8 @@ Expected behavior:
 - **Fail fast on protocol violations**
 - **Validate as early as possible**
 - **Never trust client input**
-- **Exact byte-level control**
-- **No partial or ambiguous frame reads**
+- **Exact byte‑level control**
+- **Clear separation of layers (TCP → TLS → HTTP → WebSocket)**
 
 All parsing and writing is done explicitly and incrementally.
 
@@ -149,21 +187,22 @@ All parsing and writing is done explicitly and incrementally.
 ## What This Project Demonstrates
 
 - Understanding of TCP as a byte stream
-- Bit-level protocol parsing and construction
+- Correct layering of TLS over TCP
+- Bit‑level protocol parsing and construction
 - Careful RFC interpretation and enforcement
 - Proper error handling and shutdown semantics
 - Ability to build network protocols from scratch
-- Real-world interoperability with browsers
+- Real‑world interoperability with browsers over `wss://`
 
 ---
 
 ## Disclaimer
 
 This project is intended for **learning and experimentation**.
-It is not intended to replace production-grade WebSocket servers.
+It is not intended to replace production‑grade WebSocket servers.
 
 ---
 
 ## Author
 
-Built as a learning project to deeply understand WebSocket internals and network protocol implementation in Go.
+Built as a learning project to deeply understand WebSocket internals, TLS integration, and network protocol implementation in Go.
