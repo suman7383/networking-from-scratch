@@ -1,10 +1,13 @@
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
+	"log"
 	"log/slog"
 	"net"
+	"os"
 )
 
 // TODO
@@ -19,8 +22,22 @@ type Server struct {
 var CRLF = []byte("\r\n")
 
 func (s *Server) ListenAndServe() error {
-	ln, err := net.Listen("tcp", s.Addr)
+	cwd, _ := os.Getwd()
+	log.Println("Working directory:", cwd)
 
+	// load the cert
+	cert, err := tls.LoadX509KeyPair("certs/server.crt", "certs/server.key")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create the Tls config
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		MinVersion:   tls.VersionTLS12,
+	}
+
+	ln, err := tls.Listen("tcp", s.Addr, tlsConfig)
 	if err != nil {
 		return err
 	}
@@ -56,6 +73,12 @@ func (s *Server) serve(conn net.Conn) {
 	res, err := readRequest(reader, conn)
 
 	if err != nil {
+
+		if res == nil {
+			// Drop the connection
+			return
+		}
+
 		switch {
 		case errors.Is(err, ErrMalformedRequestLine) || errors.Is(err, ErrInvalidRequestMethod):
 			// TODO
